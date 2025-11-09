@@ -1,0 +1,128 @@
+name: Build and Publish ESU
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14'
+
+      - name: Build with Gradle
+        run: ./gradlew build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ESU-Build-Artifacts
+          path: |
+            bukkit/build/libs/
+            velocity/build/libs/
+            bungeecord/build/libs/
+          if-no-files-found: warn
+
+  publish-github-release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14'
+
+      - name: Build with Gradle
+        run: ./gradlew build
+
+      - name: Get version from tag
+        id: get_version
+        run: |
+          echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: |
+            bukkit/build/libs/*.jar
+            velocity/build/libs/*.jar
+            bungeecord/build/libs/*.jar
+          name: Release v${{ env.VERSION }}
+          tag: v${{ env.VERSION }}
+          body: |
+            ## ESU v${{ env.VERSION }}
+            
+            自动构建的 ESU 插件发布。
+            
+            ### 更新内容
+            请参阅 [CHANGELOG.md](./CHANGELOG.md) 或提交历史获取详细信息。
+            
+            ### 安装说明
+            1. 下载适用于您的平台的 JAR 文件
+            2. 将其放入服务器的 plugins/mods 文件夹中
+            3. 重启服务器
+
+  publish-modrinth:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v') && env.MODRINTH_TOKEN != null
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14'
+
+      - name: Publish to Modrinth
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+        run: ./gradlew modrinth

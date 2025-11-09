@@ -14,7 +14,7 @@ jobs:
       packages: write
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 250
 
@@ -29,10 +29,23 @@ jobs:
         with:
           gradle-version: '8.14'
 
+      - name: Build with Gradle
+        run: ./gradlew build
+
+      - name: Upload Release Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ESU-Release-Build
+          path: |
+            bukkit/build/libs/*.jar
+            velocity/build/libs/*.jar
+            bungeecord/build/libs/*.jar
+          if-no-files-found: error
+
       - name: Modify Modrinth changelog
-        if: ${{ github.event_name == 'release' }}
+        if: ${{ github.event_name == 'release' && env.MODRINTH_TOKEN != null }}
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
           CHANGELOG_CONTENT: ${{ github.event.release.body }}
           GIT_TAG: ${{ github.event.release.tag_name }}
-        run: gradle editChangelog --stacktrace
+        run: ./gradlew editChangelog --stacktrace

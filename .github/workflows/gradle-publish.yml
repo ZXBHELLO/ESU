@@ -1,7 +1,10 @@
-name: ESU Dev Build
+name: ESU Development Build
 
 on:
   push:
+    branches:
+      - master
+  pull_request:
     branches:
       - master
 
@@ -13,7 +16,7 @@ jobs:
       packages: write
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 250
           fetch-tags: true
@@ -29,8 +32,21 @@ jobs:
         with:
           gradle-version: '8.14'
 
-      - name: Publish to Modrinth
-        if: ${{ github.event_name == 'push' }}
+      - name: Build Project
+        run: ./gradlew build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ESU-Dev-Build
+          path: |
+            bukkit/build/libs/
+            velocity/build/libs/
+            bungeecord/build/libs/
+          if-no-files-found: warn
+
+      - name: Publish to Modrinth (Development)
+        if: ${{ github.event_name == 'push' && env.MODRINTH_TOKEN != null }}
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
-        run: gradle modrinth --stacktrace
+        run: ./gradlew modrinth --stacktrace
