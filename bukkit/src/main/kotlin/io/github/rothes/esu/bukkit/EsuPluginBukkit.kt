@@ -14,6 +14,7 @@ import io.github.rothes.esu.bukkit.util.version.Versioned
 import io.github.rothes.esu.bukkit.util.version.adapter.InventoryAdapter.Companion.topInv
 import io.github.rothes.esu.bukkit.util.version.remapper.JarRemapper
 import io.github.rothes.esu.common.HotLoadSupport
+import io.github.rothes.esu.common.module.AutoBroadcastModule
 import io.github.rothes.esu.common.util.extension.shutdown
 import io.github.rothes.esu.core.EsuCore
 import io.github.rothes.esu.core.colorscheme.ColorSchemes
@@ -89,20 +90,22 @@ class EsuPluginBukkit(
     fun onEnable() {
         adventure           // Init adventure
         EsuConfig           // Load global config
-        BukkitEsuLang     // Load global locale
+        BukkitEsuLang       // Load global lang
         StorageManager      // Load database
         ColorSchemes        // Load color schemes
         UpdateCheckerMan    // Init update checker
-
+        BukkitUserManager   // Init user manager
         ServerHotLoadSupport(enabledHot).onEnable()
 
         Bukkit.getOnlinePlayers().forEach { it.user }
 
+        ModuleManager.addModule(AutoBroadcastModule)
         ModuleManager.addModule(AutoRestartModule)
         ModuleManager.addModule(BetterEventMessagesModule)
         ModuleManager.addModule(BlockedCommandsModule)
         ModuleManager.addModule(ChatAntiSpamModule)
         ModuleManager.addModule(CommandAntiSpamModule)
+        ModuleManager.addModule(EssentialCommandsModule)
         ModuleManager.addModule(EsuChatModule)
         ModuleManager.addModule(ExploitFixesModule)
         ModuleManager.addModule(ItemEditModule)

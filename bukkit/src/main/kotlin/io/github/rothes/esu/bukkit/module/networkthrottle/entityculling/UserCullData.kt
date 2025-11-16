@@ -4,18 +4,20 @@ import io.github.rothes.esu.bukkit.bootstrap
 import io.github.rothes.esu.bukkit.module.networkthrottle.entityculling.CullDataManager.raytraceHandler
 import io.github.rothes.esu.bukkit.plugin
 import io.github.rothes.esu.bukkit.util.scheduler.Scheduler
+import io.github.rothes.esu.bukkit.util.version.adapter.PlayerAdapter.Companion.connected
 import io.github.rothes.esu.bukkit.util.version.adapter.TickThreadAdapter.Companion.checkTickThread
 import it.unimi.dsi.fastutil.Hash
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap
 import it.unimi.dsi.fastutil.ints.IntArrayList
+import org.bukkit.Bukkit
 import org.bukkit.entity.Entity
 import org.bukkit.entity.Player
 
 class UserCullData(
-    val player: Player,
+    var player: Player,
 ) {
 
-    private val hiddenEntities = Int2ReferenceOpenHashMap<Entity>(64, Hash.FAST_LOAD_FACTOR)
+    private val hiddenEntities = Int2ReferenceOpenHashMap<Entity>(64, Hash.VERY_FAST_LOAD_FACTOR)
     private val pendingChanges = mutableListOf<CulledChange>()
     private var tickedTime = 0
     private var isRemoved = false
@@ -99,6 +101,8 @@ class UserCullData(
         val list = pendingChanges.toList()
         pendingChanges.clear()
         if (plugin.isEnabled) {
+            if (!player.connected)
+                Bukkit.getPlayer(player.uniqueId)?.let { player = it }
             Scheduler.schedule(player) {
                 val raytraceHandler = raytraceHandler
                 for (change in list) {
@@ -114,6 +118,8 @@ class UserCullData(
                     else
                         player.showEntity(bootstrap, change.entity)
                 }
+            } ?: let {
+                plugin.warn("[EntityCulling] Failed to schedule changes ${player.name}, not online?")
             }
         }
     }

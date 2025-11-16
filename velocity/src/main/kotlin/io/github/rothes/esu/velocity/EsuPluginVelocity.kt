@@ -6,13 +6,13 @@ import com.velocitypowered.api.event.Subscribe
 import com.velocitypowered.api.event.connection.DisconnectEvent
 import com.velocitypowered.api.event.connection.LoginEvent
 import com.velocitypowered.api.event.connection.PostLoginEvent
-import com.velocitypowered.api.event.connection.PreLoginEvent
 import com.velocitypowered.api.event.proxy.ProxyShutdownEvent
 import com.velocitypowered.api.plugin.PluginContainer
 import com.velocitypowered.api.proxy.ConsoleCommandSource
 import com.velocitypowered.api.proxy.Player
 import com.velocitypowered.api.proxy.ProxyServer
 import io.github.rothes.esu.common.HotLoadSupport
+import io.github.rothes.esu.common.module.AutoBroadcastModule
 import io.github.rothes.esu.core.EsuCore
 import io.github.rothes.esu.core.colorscheme.ColorSchemes
 import io.github.rothes.esu.core.command.EsuExceptionHandlers
@@ -26,6 +26,7 @@ import io.github.rothes.esu.core.util.InitOnce
 import io.github.rothes.esu.velocity.command.parser.UserParser
 import io.github.rothes.esu.velocity.config.VelocityEsuLang
 import io.github.rothes.esu.velocity.module.AutoReloadExtensionPluginsModule
+import io.github.rothes.esu.velocity.module.AutoRestartModule
 import io.github.rothes.esu.velocity.module.NetworkThrottleModule
 import io.github.rothes.esu.velocity.module.UserNameVerifyModule
 import io.github.rothes.esu.velocity.user.ConsoleUser
@@ -90,13 +91,17 @@ class EsuPluginVelocity(
 
     fun onProxyInitialization() {
         EsuConfig           // Load global config
-        VelocityEsuLang   // Load global locale
+        VelocityEsuLang     // Load global locale
         StorageManager      // Load database
         ColorSchemes        // Load color schemes
         UpdateCheckerMan    // Init update checker
+        VelocityUserManager // Init user manager
+        server.allPlayers.forEach { it.user }
 
         ServerHotLoadSupport(enabledHot).onEnable()
 
+        ModuleManager.addModule(AutoBroadcastModule)
+        ModuleManager.addModule(AutoRestartModule)
         ModuleManager.addModule(NetworkThrottleModule)
         ModuleManager.addModule(UserNameVerifyModule)
         ModuleManager.addModule(AutoReloadExtensionPluginsModule)
@@ -175,11 +180,6 @@ class EsuPluginVelocity(
         } catch (t: Throwable) {
             err("An exception occurred while shutting down coroutine: $t")
         }
-    }
-
-    @Subscribe(order = PostOrder.LAST)
-    fun onLogin(event: PreLoginEvent) {
-        event.uniqueId?.let { VelocityUserManager[it] }
     }
 
     @Subscribe(order = PostOrder.LAST)

@@ -2,7 +2,6 @@ package io.github.rothes.esu.velocity.user
 
 import com.velocitypowered.api.command.CommandSource
 import com.velocitypowered.api.proxy.Player
-import io.github.rothes.esu.core.configuration.ConfigurationPart
 import io.github.rothes.esu.core.configuration.MultiLangConfiguration
 import io.github.rothes.esu.core.storage.StorageManager
 import io.github.rothes.esu.core.util.AdventureConverter.server
@@ -29,11 +28,11 @@ class PlayerUser(override val uuid: UUID, initPlayer: Player? = null): VelocityU
                 field = get
                 return get
             }
-            return cache ?: error("Player $uuid is not online and there's no cached instance!")
+            return cache
         }
         internal set
     val player: Player
-        get() = playerCache!!
+        get() = playerCache ?: error("Player $uuid is not online and there's no cached instance!")
     override val commandSender: CommandSource
         get() = player
     override val dbId: Int
@@ -57,7 +56,7 @@ class PlayerUser(override val uuid: UUID, initPlayer: Player? = null): VelocityU
         colorSchemeUnsafe = userData.colorScheme
     }
 
-    override fun <T : ConfigurationPart> kick(locales: MultiLangConfiguration<T>, block: T.() -> String?, vararg params: TagResolver) {
+    override fun <T> kick(locales: MultiLangConfiguration<T>, block: T.() -> String?, vararg params: TagResolver) {
         player.disconnect(buildMiniMessage(locales, block, *params).server)
     }
 
